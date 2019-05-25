@@ -9,7 +9,7 @@ with open(os.path.join(base_dir, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='delphin.redwoods',
-    version='0.0.0',
+    version='0.1.0',
     description='',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -38,6 +38,7 @@ setup(
     ],
     install_requires=[
         'pydelphin >= 1.0.0',
+        'svn >= 0.3.46 ',
     ],
     extras_require={
     },
