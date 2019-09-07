@@ -1,6 +1,6 @@
 # delphin.redwoods
-PyDelphin interface for the LinGO Redwoods Treebank
 
+[Pydelphin](https://github.com/delph-in/pydelphin) plugin for the LinGO Redwoods Treebank
 
 ## Installation
 
@@ -14,10 +14,10 @@ requirements:
 
 ## Usage 
 
-Interface is supported by ``Redwoods`` class that acts as a bundle for specified testsuites of interest. 
+``Treebank`` class that acts as a bundle, grouping testsuites of interest
 
 ```python
-from delphin.redwoods import Redwoods
+from delphin.redwoods import Treebank
 ```
 
 Redwoods data can be retrieved from 3 sources:
@@ -25,22 +25,22 @@ Redwoods data can be retrieved from 3 sources:
 - User specified path to gold parse
 
 ```python
-profile = Redwoods("wsj00a", "path/to/gold/")  
+profile = Treebank("wsj00a", "path/to/gold/")  
 ```
 
 - If environment ``$LOGONROOT`` is setup, use its remote copy of Redwoods
 
 ```python
-profile = Redwoods("wsj00a")  
+profile = Treebank("wsj00a")  
 ```
 
-- retreave remote repository to ``~/redwoods`` (default option)
+- retreave [svn repository](http://svn.delph-in.net/erg/tags/1214/tsdb/gold) to ``~/redwoods`` (default option)
 
 ```python
-profile = Redwoods("wsj00a")  
+profile = Treebank("wsj00a")  
 ```
 
-User can mofity the profiles stored in the bundle:
+User can edit the profiles stored in the bundle:
 
 ```python
 profile.upload("wsj00b") # access to profiles wsj00a and wsj00b
@@ -51,28 +51,28 @@ profile.reload("wsjooc") # access to profiles wsj00c
 Each profile can be interacted with standard ``TestSuite`` inteface:
 
 ```python
-profile = Redwoods("wsj00a")
+profile = Treebank("wsj00a")
 profile["wsj00a"] # TestSuite stored in path/to/gold/wsj00a  
 ```
 
 There exists support to create standard bundle sets of profiles:
 
 ```python
-deepbank_train = Redwoods("deepbank-train") # wsj section 0 - 19
-deepbank_dev = Redwoods("deepbank-dev") # wsj section 20
-deepbank_test = Redwoods("deepbank-test") # wsj section 21
-deepbank = Redwoods("deepbank") # wsj section 0 - 21
-redwoods = Redwoods("redwoods") # retrieves all existing profiles 
+deepbank_train = Treebank("deepbank-train") # wsj section 0 - 19
+deepbank_dev = Treebank("deepbank-dev") # wsj section 20
+deepbank_test = ReTreebankdwoods("deepbank-test") # wsj section 21
+deepbank = Treebank("deepbank") # wsj section 0 - 21
+redwoods = Treebank("redwoods") # retrieves all existing profiles 
 ```
 
-``RedwoodsResponse`` can be retrieved for a single profile or all profiles specified in the bundle:
+``TreebankResponse`` can be retrieved for a single profile or all profiles specified in the bundle:
 
 ```python
-profile.get("wsj00a") # ``RedwoodsResponse`` for Profile wsj00a
-profile.get_all() # ``RedwoodsResponse`` for all profiles specified in ``profile``
+profile.get("wsj00a") # ``TreebankResponse`` for Profile wsj00a
+profile.get_all() # ``TreebankResponse`` for all profiles specified in ``profile``
 ```
 
-Each ``RedwoodsResponse`` consists of the following information:
+Each ``TreebankResponse`` consists of the following information:
 - `ids`: unique ids for each sentence in redwoods (format: ``testsuite:i-id``)
 - `partitions` identifier of ``TEST``, ``DEV``, or ``TRAIN`` partition for each sentence
 - `results` for each sentence the following information is recorded:

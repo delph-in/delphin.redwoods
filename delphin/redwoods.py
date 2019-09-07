@@ -1,125 +1,132 @@
+# -*- coding: utf-8 -*-
 """
-PyDelphin Plugin as an interface tin LinGO Redwoods Treebank
+PyDelphin Plugin for Redwoods LinGO Treebank 
+
+- ``TreebankException``: ``PydelphinException`` occuring processing Treebank.
+
+- ``TreebankResponce``: ``Response`` with metadata.
+
+- ``Metadata``: list of metadata about ERG tagged release.
+
+- ``Treebank``: Treebank wrapper.
+  - ``description()``: metada about current testsuites and partitions 
+  - ``upload(testsuite: str)``: add testuite to current bundle
+  - ``remove(testuite:str) ``: remove testuite from current bundle
+  - ``get(testsuite: str)``: make ``TreebankResponce`` for given testsuite.
+  - ``get_all(): make ``TreebankResponce`` for all included testsuites.
 """
+
 import os
-from typing import List
-from enum import Enum, auto
-from svn.remote import RemoteClient as cli
+import csv
+from typing import List, Dict
+from pprint import pprint
+from glob import glob
+
+from svn.remote import RemoteClient
 
 from delphin.interface import Response
 from delphin.itsdb import TestSuite
 from delphin.exceptions import PyDelphinException
 
-# Redwoods Portions by split.
-# See http://svn.delph-in.net/erg/tags/1214/etc/redwoods.xls
+class TreebankException(PyDelphinException):
+    """Treebank Processing Exception"""
 
-TRAIN = [
-    "csli", "esd", "fracas", "mrs", "trec", "ecoc", "ecos", "hike", "jh0",
-    "jh1", "jh2", "jh3", "jh4", "tg1", "ps", "rtc000", "rtc001", "sc01",
-    "sc02", "sc03", "vm6", "vm13", "vm31", "ws01", "ws02", "ws03", "ws04",
-    "ws05", "ws06", "ws07", "ws08", "ws09", "ws10", "ws11", "peted", "wsj00a",
-    "wsj00b", "wsj00c", "wsj00d", "wsj01a", "wsj01b", "wsj01c", "wsj01d",
-    "wsj02a", "wsj02b", "wsj02c", "wsj02d", "wsj03a", "wsj03b", "wsj03c",
-    "wsj04a", "wsj04b", "wsj04c", "wsj04d", "wsj04e", "wsj05a", "wsj05b",
-    "wsj05c", "wsj05d", "wsj05e", "wsj06a", "wsj06b", "wsj06c", "wsj06d",
-    "wsj07a", "wsj07b", "wsj07c", "wsj07d", "wsj07e", "wsj08a", "wsj09a",
-    "wsj09b", "wsj09c", "wsj09d", "wsj09e", "wsj10a", "wsj10b", "wsj10c",
-    "wsj10d", "wsj11a", "wsj11b", "wsj11c", "wsj11d", "wsj11e", "wsj12a",
-    "wsj12b", "wsj12c", "wsj12d", "wsj12e", "wsj13a", "wsj13b", "wsj13c",
-    "wsj13d", "wsj13e", "wsj14a", "wsj14b", "wsj14c", "wsj14d", "wsj14e",
-    "wsj15a", "wsj15b", "wsj15c", "wsj15d", "wsj15e", "wsj16a", "wsj16b",
-    "wsj16c", "wsj16d", "wsj16e", "wsj16f", "wsj17a", "wsj17b", "wsj17c",
-    "wsj17d", "wsj18a", "wsj18b", "wsj18c", "wsj18d", "wsj18e", "wsj19a",
-    "wsj19b", "wsj19c", "wsj19d",
-]
-
-DEV = [
-    "ecpa", "jh5", "tg2", "ws12", "wsj20a",
-    "wsj20b", "wsj20c", "wsj20d", "wsj20e",
-]
-
-TEST = [
-    "ecpr", "jhk", "jhu", "tgk", "tgu", "psk", "psu", "rondane", "cf04",
-    "cf06", "cf10", "cf21", "cg07", "cg11", "cg21", "cg25", "cg32", "cg35",
-    "ck11", "ck17", "cl05", "cl14", "cm04", "cn03", "cn10", "cp15", "cp26",
-    "cr09", "vm32", "ws13", "ws214", "petet", "wsj21a", "wsj21b", "wsj21c",
-    "wsj21d",
-]
-
-
-class RedwoodsError(PyDelphinException):
-    """Exception when processing Redwoods"""
-
-
-class Partition(Enum):
-    TRAIN = auto()
-    DEV = auto()
-    TEST = auto()
-
-
-class RedwoodsResponse(Response):
-    "Wrapper for extra fields include to Response"
+class TreebankResponse(Response):
+    """ ``Response`` with metadata """
 
     def __init__(self):
         super()
-        self["results"] = []
-        self["partitions"] = []
-        self["ids"] = []
+        self["results"]  = []
+        self["metadata"] = []
 
-    def partitions(self) -> List[Partition]:
+class Metadata(List):
+    """
+    Redwoods metadata information. Supported ERG tagged versions:
+    - 1214, 2018
 
-        return [partition for partition in self.get('partition', [])]
+    Parameters
+    ----------
+    tag: int, default ``1214``
+        ERG tagged version of Redwoods
+    """
 
-    def partition(self, i) -> Partition:
+    def __init__(self, tag=1214):
+        super()
+        TAGS = [1214, 2018]
 
-        return self.get('partition', [])[i]
+        if tag not in TAGS:
+            msg = '{} not in list of valid tags: {}'.format(tag, TAGS)
+            raise TreebankException(msg)
 
-    def ids(self) -> List[str]:
+        path = "./delphin/data/{}.csv".format(tag)
+        
+        with open(path) as f:
+            reader = csv.reader(f, delimiter=',')
+            for idx, row in enumerate(reader):
+                if idx == 0:
+                    schema = row
+                else:
+                    e= dict(zip(schema, row))
+                    self.append(e)
 
-        return [id for id in self.get('id', [])]
+class Treebank(object):
+    """
+    Treebank: a bundle for a Redwoods testsuite profiles
 
-    def id(self, i) -> str:
+    Parameters
+    ----------
+    name: str
+        name of the testsuite or partition to be uploaded
+    path: str, default ``~/redwoods<TAG>``
+        path to tsdb, by default retrieves to home directory
+    use_logon: bool, default ``True``
+        if ``True`` used testsuites from logon environment
+    tag: int, default ``1214``
+        version of ERG tagged version to use.
+    """
 
-        return self.get('id', [])[i]
+    def __init__(self,
+                 name: str,
+                 path: str = None,
+                 use_logon: bool = True,
+                 tag: int = 1214):
 
-
-class Redwoods:
-
-    def __init__(self, testsuite: str, path: str = None):
+        self.metatada = Metadata(tag)
 
         if path is None:
 
             logon_path = os.environ.get('LOGONROOT')
-            default_path = os.path.expanduser("~") + "/redwoods"
+            default_path = os.path.expanduser("~") + "/redwoods"+str(tag)
 
-            if logon_path:
+            if use_logon and logon_path:
                 self._path = logon_path + "/lingo/erg/tsdb/gold"
 
             elif os.path.exists(default_path):
                 self._path = default_path
 
             else:
-                print('No path found, checking out Redwoods to '+default_path)
-
-                # TODO currrent  trunk does not have full Redwoods.
-                # Use latest tagged version
-                rep = cli("http://svn.delph-in.net/erg/tags/1214/tsdb/gold/")
-                rep.checkout(default_path)
-
                 self._path = default_path
 
+                print("checking out Redwoods to {}".format(self._path))
+
+                url = 'http://svn.delph-in.net/erg/tags/{}/tsdb/gold/'.format(tag)
+                cli = RemoteClient(url)
+                cli.checkout(self._path)
         else:
-            self._path = path
+            if os.path.isdir(path):
+                self._path = path
+            else:
+                raise TreebankException("{} does not exits".format(path))
 
         self._testsuites = {}
 
-        self.upload(testsuite)
-
-    def __contains__(self, key):
+        self.upload(name)
+    
+    def __contains__(self,key):
         return key in self._testsuites
 
     def __getitem__(self, key):
-        return TestSuite(self._testsuites[key])
+        return self._testsuites[key]
 
     def __iter__(self):
         return iter(self._testsuites)
@@ -127,126 +134,143 @@ class Redwoods:
     def __len__(self):
         return len(self._testsuites)
 
-    def upload(self, testsuite: str):
+    def description(self):
+        """
+        Metadata information about Testsuites in Treebankt
+        """
 
-        testsuites = self._collect_testsuites(testsuite)
+        data = [e for e in self.metatada if e['name']
+        in self._testsuites.keys()]
+        
+        pprint(data)
 
-        for testsuite in testsuites:
+    def upload(self, name: str):
+        """
+        Upload testsuite or partition
 
-            testsuite_path = "{}/{}".format(self._path, testsuite)
+        Parameters
+        ----------
+        name: str
+            name of the testsuite or their bundle to be uploaded
+        """
 
-        if os.path.exists(testsuite_path):
-            self._testsuites[testsuite] = testsuite_path
+        testsuites = self._collect(name)
+
+        for ts in testsuites:
+
+            path = "{}/{}".format(self._path, ts)
+            paths = glob(path + '*')
+            paths = [p for p in paths if not os.path.exists(p+'/virtual')]
+            if len(paths) != 0:
+                self._testsuites[ts] = path
+
+            else:
+                raise TreebankException("No testsuite {} ".format(path))
+
+    def remove(self, name: str):
+        """
+        Remove testsuite or partition
+
+        Parameters
+        ----------
+        name: str
+            name of the testsuite or partition to be removed
+        """
+
+        testsuites = self._collect(name)
+
+        for ts in testsuites:
+            del self._testsuites[ts]
+
+
+    def _collect(self, name: str) -> List[str]:
+
+        names = [e['name'] for e in self.metatada]
+        partitions = set(["{}.{}".format(e['description'], e['split'])
+        for e in self.metatada])
+
+        if name in names:
+
+            return [name]
+
+        elif name in partitions:
+
+            description, split = name.split(".")
+
+            testsuites  = [e['name'] for e in self.metatada if 
+            description == e['description'] and split == e['split']]
+
+            return testsuites
 
         else:
-            raise RedwoodsError("No testsuite {} ".format(testsuite_path))
+            msg = "not a valid testsuite or partition"
+            raise TreebankException(msg)
 
-    def remove(self, testsuite: str):
+    def get(self, name: str) -> TreebankResponse:
 
-        testsuites = self._collect_testsuites(testsuite)
+        testsuites = self._collect(name)
 
-        for testsuite in testsuites:
-            del self._testsuites[testsuite]
+        response = TreebankResponse()
 
-    def reload(self, testsuite: str):
+        for ts in testsuites:
 
-        self._testsuites = {}
-
-        self.upload(testsuite)
-
-    def _collect_testsuites(self, testsuite: str) -> List[str]:
-
-        "support for special groups of testsuites"
-        # TODO add all the standard named partitions
-
-        if testsuite == "deepbank-train":
-            return list(filter(lambda x: "wsj" in x, TRAIN))
-
-        elif testsuite == "deepbank-dev":
-            return list(filter(lambda x: "wsj" in x, DEV))
-
-        elif testsuite == "deepbank-test":
-            return list(filter(lambda x: "wsj" in x, TEST))
-
-        elif testsuite == "deepbank":
-            return list(filter(lambda x: "wsj" in x, TRAIN+DEV+TEST))
-
-        elif testsuite == "redwoods":
-            return TRAIN+DEV+TEST
-
-        else:
-            return [testsuite]
-
-    def get(self, testsuite: str) -> RedwoodsResponse:
-
-        testsuites = self._collect_testsuites(testsuite)
-
-        response = RedwoodsResponse()
-
-        for testsuite in testsuites:
-
-            response["results"].append(self._make_result(testsuite))
-            response["partitions"].append(self._make_partitions(testsuite))
-            response["ids"].append(self._make_ids(testsuite))
+            response["results"].append(self._make_result(ts))
+            response["metadata"].append(self._make_metadata(ts))
 
         return response
 
-    def get_all(self) -> RedwoodsResponse:
+    def get_all(self) -> TreebankResponse:
 
         responses = []
 
-        for testsuite in self._testsuites:
+        for ts in self._testsuites:
 
-            responses.append(self.get(testsuite))
+            responses.append(self.get(ts))
 
-        join_response = RedwoodsResponse()
+        response = TreebankResponse()
 
         for key in responses[0].keys():
 
-            join_response[key] = [response[key] for response in responses]
+            response[key] = [ress[key] for ress in responses]
 
-        return join_response
+        return response
 
-    def _make_result(self, testsuite: str) -> List[str]:
+    def _make_result(self, name: str) -> List[str]:
+        
+        # Get all testsuites matching the name path
+        # Required for treating virtual testsuites 
 
-        table = TestSuite(self._testsuites[testsuite])["result"]
+        paths = glob(self._testsuites[name] + "*")
+        paths = [p for p in paths if not os.path.exists(p+'/virtual')]
+
+        tables = [TestSuite(path)["result"] for path in paths]
+
         result = []
 
-        for record in table:
+        for table in tables:
 
-            result.append({
-                'surface': record['surface'],
-                'mrs': record['mrs'],
-                'derivation': record['derivation'],
-                'tree': record['tree']})
+            for record in table:
+
+                result.append({
+                    'surface': record['surface'],
+                    'mrs': record['mrs'],
+                    'derivation': record['derivation'],
+                    'tree': record['tree']})
 
         return result
 
-    def _make_partitions(self, testsuite: str) -> List[Partition]:
+    def _make_metadata(self, name: str) -> Dict:
 
-        size = len(TestSuite(self._testsuites[testsuite])["result"])
+        names = [e['name'] for e in self.metatada]
 
-        if testsuite in TRAIN:
-            return size*[Partition.TRAIN]
+        if name in names:
+            data = [e for e in self.metatada if name == e['name']]
 
-        elif testsuite in DEV:
-            return size*[Partition.DEV]
-
-        elif testsuite in TEST:
-            return size*[Partition.TEST]
+            if len(data) == 1:
+                return data[0]
+            else:
+                msg = "expected 1, but got {} instances".format(len(data))
+                TreebankException(msg)
 
         else:
-            redwoods = TRAIN+DEV+TEST
-            msg = "Testsuite {} not in Redwoods:{}".format(testsuite, redwoods)
-            raise RedwoodsError(msg)
-
-    def _make_ids(self, testsuite: str) -> List[str]:
-
-        table = TestSuite(self._testsuites[testsuite])["parse"]
-        ids = []
-
-        for record in table:
-
-            ids.append(testsuite + ':' + record['i-id'])
-
-        return ids
+            TreebankException("{} not found in redwoods".format(name))
