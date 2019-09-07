@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-PyDelphin Plugin for Redwoods LinGO Treebank 
+PyDelphin Plugin for Redwoods LinGO Treebank
 
 - ``TreebankException``: ``PydelphinException`` occuring processing Treebank.
 
@@ -9,7 +9,7 @@ PyDelphin Plugin for Redwoods LinGO Treebank
 - ``Metadata``: list of metadata about ERG tagged release.
 
 - ``Treebank``: Treebank wrapper.
-  - ``description()``: metada about current testsuites and partitions 
+  - ``description()``: metada about current testsuites and partitions
   - ``upload(testsuite: str)``: add testuite to current bundle
   - ``remove(testuite:str) ``: remove testuite from current bundle
   - ``get(testsuite: str)``: make ``TreebankResponce`` for given testsuite.
@@ -28,16 +28,19 @@ from delphin.interface import Response
 from delphin.itsdb import TestSuite
 from delphin.exceptions import PyDelphinException
 
+
 class TreebankException(PyDelphinException):
     """Treebank Processing Exception"""
+
 
 class TreebankResponse(Response):
     """ ``Response`` with metadata """
 
     def __init__(self):
         super()
-        self["results"]  = []
+        self["results"] = []
         self["metadata"] = []
+
 
 class Metadata(List):
     """
@@ -59,15 +62,16 @@ class Metadata(List):
             raise TreebankException(msg)
 
         path = "./delphin/data/{}.csv".format(tag)
-        
+
         with open(path) as f:
             reader = csv.reader(f, delimiter=',')
             for idx, row in enumerate(reader):
                 if idx == 0:
                     schema = row
                 else:
-                    e= dict(zip(schema, row))
+                    e = dict(zip(schema, row))
                     self.append(e)
+
 
 class Treebank(object):
     """
@@ -109,7 +113,7 @@ class Treebank(object):
 
                 print("checking out Redwoods to {}".format(self._path))
 
-                url = 'http://svn.delph-in.net/erg/tags/{}/tsdb/gold/'.format(tag)
+                url = 'svn.delph-in.net/erg/tags/{}/tsdb/gold/'.format(tag)
                 cli = RemoteClient(url)
                 cli.checkout(self._path)
         else:
@@ -121,8 +125,8 @@ class Treebank(object):
         self._testsuites = {}
 
         self.upload(name)
-    
-    def __contains__(self,key):
+
+    def __contains__(self, key):
         return key in self._testsuites
 
     def __getitem__(self, key):
@@ -140,8 +144,8 @@ class Treebank(object):
         """
 
         data = [e for e in self.metatada if e['name']
-        in self._testsuites.keys()]
-        
+                in self._testsuites.keys()]
+
         pprint(data)
 
     def upload(self, name: str):
@@ -182,12 +186,11 @@ class Treebank(object):
         for ts in testsuites:
             del self._testsuites[ts]
 
-
     def _collect(self, name: str) -> List[str]:
 
         names = [e['name'] for e in self.metatada]
         partitions = set(["{}.{}".format(e['description'], e['split'])
-        for e in self.metatada])
+                         for e in self.metatada])
 
         if name in names:
 
@@ -195,10 +198,10 @@ class Treebank(object):
 
         elif name in partitions:
 
-            description, split = name.split(".")
+            d, s = name.split(".")
 
-            testsuites  = [e['name'] for e in self.metatada if 
-            description == e['description'] and split == e['split']]
+            testsuites = [e['name'] for e in self.metatada if
+                          d == e['description'] and s == e['split']]
 
             return testsuites
 
@@ -236,9 +239,9 @@ class Treebank(object):
         return response
 
     def _make_result(self, name: str) -> List[str]:
-        
+
         # Get all testsuites matching the name path
-        # Required for treating virtual testsuites 
+        # Required for treating virtual testsuites
 
         paths = glob(self._testsuites[name] + "*")
         paths = [p for p in paths if not os.path.exists(p+'/virtual')]
