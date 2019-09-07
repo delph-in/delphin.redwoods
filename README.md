@@ -19,71 +19,57 @@ requirements:
 ```python
 from delphin.redwoods import Treebank
 ```
-
 Redwoods data can be retrieved from 3 sources:
 
 - User specified path to gold parse
 
 ```python
-profile = Treebank("wsj00a", "path/to/gold/")  
+profile = Treebank("wsj00a", "path/to/gold/")
 ```
 
 - If environment ``$LOGONROOT`` is setup, use its remote copy of Redwoods
 
 ```python
-profile = Treebank("wsj00a")  
+profile = Treebank("wsj00a")
 ```
 
-- retreave [svn repository](http://svn.delph-in.net/erg/tags/1214/tsdb/gold) to ``~/redwoods`` (default option)
+- retreave [svn repository](http://svn.delph-in.net/erg/tags/<TAG>/tsdb/gold) to ``~/redwoods<TAG>`` (default option)
 
 ```python
-profile = Treebank("wsj00a")  
+profile = Treebank("wsj00a")
 ```
+
+When retreiving the data you can specified which ``tag`` version to use. Currently supported versions:
+- 1214 (default)
+- 2018 
 
 User can edit the profiles stored in the bundle:
 
 ```python
-profile.upload("wsj00b") # access to profiles wsj00a and wsj00b
-profile.remove("wsj00a") # access to profiles wsj00b
-profile.reload("wsjooc") # access to profiles wsj00c
-```
-
-Each profile can be interacted with standard ``TestSuite`` inteface:
-
-```python
-profile = Treebank("wsj00a")
-profile["wsj00a"] # TestSuite stored in path/to/gold/wsj00a  
+profile = Treebank("wsj00") # access to profile wsj00
+profile.upload("wsj01") # access to profiles wsj00 and wsj01
+profile.remove("wsj00") # access to profiles wsj01
 ```
 
 There exists support to create standard bundle sets of profiles:
 
 ```python
-deepbank_train = Treebank("deepbank-train") # wsj section 0 - 19
-deepbank_dev = Treebank("deepbank-dev") # wsj section 20
-deepbank_test = ReTreebankdwoods("deepbank-test") # wsj section 21
-deepbank = Treebank("deepbank") # wsj section 0 - 21
-redwoods = Treebank("redwoods") # retrieves all existing profiles 
+deepbank_train = Treebank("deepbank.train") # wsj section 0 - 19
+deepbank_dev = Treebank("deepbank.dev") # wsj section 20
+deepbank_test = ReTreebankdwoods("deepbank.test") # wsj section 21
 ```
 
 ``TreebankResponse`` can be retrieved for a single profile or all profiles specified in the bundle:
 
 ```python
-profile.get("wsj00a") # ``TreebankResponse`` for Profile wsj00a
+profile.get("wsj00") # ``TreebankResponse`` for Profile wsj00
 profile.get_all() # ``TreebankResponse`` for all profiles specified in ``profile``
 ```
 
 Each ``TreebankResponse`` consists of the following information:
-- `ids`: unique ids for each sentence in redwoods (format: ``testsuite:i-id``)
-- `partitions` identifier of ``TEST``, ``DEV``, or ``TRAIN`` partition for each sentence
+- `metadata` about the the partition, including its description, split, and stats.
 - `results` for each sentence the following information is recorded:
   - `surface`: surface form
   - `derivation`: derivation information
   - `tree`: syntactic tree
   - `mrs` : mrs representation
-
-# TODO
-- [ ] Add further support for standard bundles
-- [ ] Extend ``redwoods_test.py``
-- [ ] Add interface to write results to file that can be later processed using ``delphin.codec``.
-This includes specification of encoding format.
-- [ ] Create release v.0.1.0
