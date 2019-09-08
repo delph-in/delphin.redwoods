@@ -9,12 +9,12 @@ with open(os.path.join(base_dir, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='delphin.redwoods',
-    version='0.0.0',
-    description='',
+    version='0.1.0',
+    description='Pydelphin plugin for LinGO Redwoods Treebank',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/delph-in/delphin.redwoods',
-    author='',
+    author='Rimvydas Rubavicius',
     author_email='',
     license='MIT',
     classifiers=[
@@ -36,8 +36,14 @@ setup(
     keywords='nlp semantics hpsg delph-in linguistics',
     packages=[
     ],
+    data_files = [
+        ('1214', 'data/1214.csv'),
+        ('2018', 'data/2018.csv'),
+    ],
+    include_package_data=True,
     install_requires=[
         'pydelphin >= 1.0.0',
+        'svn >= 0.3.46 ',
     ],
     extras_require={
     },
